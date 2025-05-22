@@ -151,23 +151,24 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
           class="node-text"
           data-node-id="${d.id}" 
           style="
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: ${size(d.value) * 1.5}px;
             text-align: center;
             color: ${d.isCenter ? '#333333' : '#ffffff'};
             font-weight: ${d.isCenter ? 'bold' : 'normal'};
-            font-size: ${Math.max(10, size(d.value) / 5)}px;
+            font-size: ${Math.max(10, size(d.value) / 7)}px;
             overflow: hidden;
             text-overflow: ellipsis;
             word-wrap: break-word;
-            word-break: break-word;
             hyphens: auto;
-            padding: 5px;
             box-sizing: border-box;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
             cursor: pointer;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
           "
         >
           ${d.name}
