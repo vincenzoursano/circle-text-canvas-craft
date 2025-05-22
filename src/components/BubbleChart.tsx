@@ -72,6 +72,10 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
       .attr('style', 'max-width: 100%; height: auto;')
       .attr('font-family', 'sans-serif')
       .attr('text-anchor', 'middle');
+    
+    // Create a container for all elements that will be transformed
+    const container = svg.append('g')
+      .attr('class', 'zoom-container');
 
     // Create a color scale
     const color = d3.scaleOrdinal()
@@ -91,7 +95,7 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
       .on('tick', ticked);
 
     // Create node group
-    const node = svg.append('g')
+    const node = container.append('g')
       .attr('class', 'nodes')
       .selectAll('g')
       .data(nodes)
@@ -164,6 +168,95 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
         .on('end', dragended);
     }
 
+    // Add zoom behavior
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.5, 5]) // Set min and max zoom levels
+      .on('zoom', (event) => {
+        container.attr('transform', event.transform);
+      });
+
+    // Initialize zoom and enable it on the SVG
+    svg.call(zoom)
+      .on('dblclick.zoom', null); // Disable double-click zoom for better usability
+
+    // Add zoom controls
+    const zoomControls = svg.append('g')
+      .attr('class', 'zoom-controls')
+      .attr('transform', `translate(${dimensions.width - 100}, 20)`);
+
+    // Zoom in button
+    zoomControls.append('rect')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', 30)
+      .attr('height', 30)
+      .attr('rx', 5)
+      .attr('fill', '#f0f0f0')
+      .attr('stroke', '#ccc')
+      .attr('cursor', 'pointer')
+      .on('click', () => {
+        svg.transition()
+          .duration(300)
+          .call(zoom.scaleBy, 1.3);
+      });
+
+    zoomControls.append('text')
+      .attr('x', 15)
+      .attr('y', 20)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#333')
+      .text('+')
+      .attr('pointer-events', 'none');
+
+    // Zoom out button
+    zoomControls.append('rect')
+      .attr('x', 40)
+      .attr('y', 0)
+      .attr('width', 30)
+      .attr('height', 30)
+      .attr('rx', 5)
+      .attr('fill', '#f0f0f0')
+      .attr('stroke', '#ccc')
+      .attr('cursor', 'pointer')
+      .on('click', () => {
+        svg.transition()
+          .duration(300)
+          .call(zoom.scaleBy, 0.7);
+      });
+
+    zoomControls.append('text')
+      .attr('x', 55)
+      .attr('y', 20)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#333')
+      .text('-')
+      .attr('pointer-events', 'none');
+
+    // Reset zoom button
+    zoomControls.append('rect')
+      .attr('x', 20)
+      .attr('y', 40)
+      .attr('width', 30)
+      .attr('height', 30)
+      .attr('rx', 5)
+      .attr('fill', '#f0f0f0')
+      .attr('stroke', '#ccc')
+      .attr('cursor', 'pointer')
+      .on('click', () => {
+        svg.transition()
+          .duration(300)
+          .call(zoom.transform, d3.zoomIdentity);
+      });
+
+    zoomControls.append('text')
+      .attr('x', 35)
+      .attr('y', 60)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#333')
+      .attr('font-size', '10px')
+      .text('Reset')
+      .attr('pointer-events', 'none');
+
     return () => {
       simulation.stop();
     };
@@ -180,7 +273,7 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
         aria-label="Bubble chart visualization showing relationships between concepts"
       >
         <title>Bubble Chart Visualization</title>
-        <desc>An interactive bubble chart showing relationships between various concepts with a central theme.</desc>
+        <desc>An interactive bubble chart showing relationships between various concepts with a central theme. Zoom and pan enabled.</desc>
       </svg>
     </div>
   );
