@@ -1,6 +1,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Node {
   id: string;
@@ -17,31 +23,28 @@ interface BubbleChartProps {
 const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width, height });
+  const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [truncatedNodes, setTruncatedNodes] = useState<Set<string>>(new Set());
 
-  // Sample data
+  // Extended sample data with varying text lengths
   const nodes: Node[] = [
-    { id: "center", name: "Attivismo ambientale", value: 65, isCenter: true },
-    { id: "1", name: "Fondazione Italia Nostra", value: 40 },
-    { id: "2", name: "Antonella Caroli", value: 35 },
-    { id: "3", name: "Giulia Maria Crespi", value: 35 },
-    { id: "4", name: "Mariarita Signorini", value: 37 },
-    { id: "5", name: "Adele Rossi", value: 30 },
-    { id: "6", name: "Silvia Croce", value: 33 },
-    { id: "7", name: "Lidia Croce", value: 32 },
-    { id: "8", name: "Devastazione del patrimonio", value: 38 },
-    { id: "9", name: "Tina Merlin", value: 35 },
-    { id: "10", name: "Fondazione Roffredo Caetani", value: 40 },
-    { id: "11", name: "Ruolo dell'ambientalista", value: 38 },
-    { id: "12", name: "Battaglie ambientaliste", value: 39 },
-    { id: "13", name: "Antonia Desideri", value: 34 },
-    { id: "14", name: "Comitato per la Costiera Amalfitana", value: 38 },
-    { id: "15", name: "Alessandra Mottola", value: 35 },
-    { id: "16", name: "Scrittura come attivismo", value: 39 },
-    { id: "17", name: "Alda Croce", value: 32 },
-    { id: "18", name: "Elena Croce", value: 33 },
-    { id: "19", name: "Fondazione Europa Nostra", value: 40 },
-    { id: "20", name: "Ebe Giacometti", value: 34 },
-    { id: "21", name: "Lotta alla cementificazione", value: 38 },
+    { id: "center", name: "Interactive Data Visualization", value: 65, isCenter: true },
+    { id: "1", name: "D3.js", value: 40 },
+    { id: "2", name: "SVG Rendering", value: 35 },
+    { id: "3", name: "Data Binding", value: 30 },
+    { id: "4", name: "Responsive Design", value: 42 },
+    { id: "5", name: "Animation", value: 25 },
+    { id: "6", name: "User Experience", value: 38 },
+    { id: "7", name: "Accessibility", value: 32 },
+    { id: "8", name: "This is an example of a much longer text that might need to be truncated when displayed in a smaller circle", value: 45 },
+    { id: "9", name: "Performance Optimization", value: 28 },
+    { id: "10", name: "Color Theory", value: 22 },
+    { id: "11", name: "Visual Hierarchy in Data Visualization can help users understand the relative importance of different data points", value: 40 },
+    { id: "12", name: "Interactivity", value: 35 },
+    { id: "13", name: "Data Transformation", value: 30 },
+    { id: "14", name: "Scalability", value: 28 },
+    { id: "15", name: "Sometimes the most effective data visualizations are those that simplify complex information into easy-to-understand visual representations", value: 48 },
   ];
 
   useEffect(() => {
@@ -58,6 +61,25 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Check if text is truncated after rendering
+  const checkTextTruncation = () => {
+    const newTruncatedNodes = new Set<string>();
+    document.querySelectorAll('.node-text').forEach((element) => {
+      const textDiv = element as HTMLDivElement;
+      if (textDiv.scrollHeight > textDiv.clientHeight || textDiv.scrollWidth > textDiv.clientWidth) {
+        const nodeId = textDiv.dataset.nodeId;
+        if (nodeId) newTruncatedNodes.add(nodeId);
+      }
+    });
+    setTruncatedNodes(newTruncatedNodes);
+  };
+
+  useEffect(() => {
+    // Run truncation check after a small delay to ensure DOM is fully rendered
+    const timeoutId = setTimeout(checkTextTruncation, 100);
+    return () => clearTimeout(timeoutId);
+  }, [dimensions]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -77,21 +99,21 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
     const container = svg.append('g')
       .attr('class', 'zoom-container');
 
-    // Create a color scale
-    const color = d3.scaleOrdinal()
+    // Create a color scale with more variety
+    const colorScale = d3.scaleOrdinal()
       .domain(nodes.map(d => d.id))
-      .range(d3.schemeSet2);
+      .range(d3.schemeCategory10);
 
     // Create a size scale for bubbles
     const size = d3.scaleLinear()
       .domain([0, 100])
-      .range([10, Math.min(dimensions.width, dimensions.height) / 4]);
+      .range([20, Math.min(dimensions.width, dimensions.height) / 5]);
 
-    // Create a force simulation
+    // Create a force simulation with adjusted forces
     const simulation = d3.forceSimulation(nodes)
-      .force('charge', d3.forceManyBody().strength(5))
+      .force('charge', d3.forceManyBody().strength(10))
       .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
-      .force('collision', d3.forceCollide().radius(d => size(d.value)))
+      .force('collision', d3.forceCollide().radius(d => size(d.value) + 5))
       .on('tick', ticked);
 
     // Create node group
@@ -100,15 +122,23 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
       .selectAll('g')
       .data(nodes)
       .join('g')
+      .attr('class', 'node')
+      .attr('data-node-id', d => d.id)
       .attr('aria-label', d => `Bubble representing ${d.name}`)
-      .call(drag(simulation));
+      .call(drag(simulation))
+      .on('mousemove', (event, d) => {
+        setMousePosition({ x: event.pageX, y: event.pageY });
+        setHoveredNode(d);
+      })
+      .on('mouseleave', () => setHoveredNode(null));
 
-    // Add a circle to each node
+    // Add a circle to each node with varied colors
     node.append('circle')
       .attr('r', d => size(d.value))
-      .attr('fill', d => d.isCenter ? 'white' : '#f44336')
-      .attr('stroke', d => d.isCenter ? '#f44336' : 'none')
-      .attr('stroke-width', 2);
+      .attr('fill', d => d.isCenter ? '#ffffff' : colorScale(d.id))
+      .attr('stroke', d => d.isCenter ? '#f44336' : '#ffffff')
+      .attr('stroke-width', d => d.isCenter ? 2 : 1)
+      .attr('opacity', 0.9);
 
     // Add a foreignObject to each node for better text handling
     node.append('foreignObject')
@@ -117,23 +147,29 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
       .attr('x', d => -size(d.value) * 0.9)
       .attr('y', d => -size(d.value) * 0.9)
       .html(d => `
-        <div xmlns="http://www.w3.org/1999/xhtml" style="
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          color: ${d.isCenter ? '#f44336' : 'white'};
-          font-weight: ${d.isCenter ? 'bold' : 'normal'};
-          font-size: ${d.isCenter ? '1.2em' : '0.9em'};
-          overflow-wrap: break-word;
-          word-wrap: break-word;
-          word-break: break-word;
-          hyphens: auto;
-          padding: 5px;
-          box-sizing: border-box;
-        ">
+        <div xmlns="http://www.w3.org/1999/xhtml" 
+          class="node-text"
+          data-node-id="${d.id}" 
+          style="
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: ${d.isCenter ? '#333333' : '#ffffff'};
+            font-weight: ${d.isCenter ? 'bold' : 'normal'};
+            font-size: ${Math.max(10, size(d.value) / 5)}px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+            padding: 5px;
+            box-sizing: border-box;
+            cursor: pointer;
+          "
+        >
           ${d.name}
         </div>
       `);
@@ -263,19 +299,36 @@ const BubbleChart = ({ width = 800, height = 600 }: BubbleChartProps) => {
   }, [dimensions]);
 
   return (
-    <div className="bubble-chart-container" style={{ width: '100%', height: '100%' }}>
-      <svg 
-        ref={svgRef}
-        className="bubble-chart"
-        width={dimensions.width}
-        height={dimensions.height}
-        role="img"
-        aria-label="Bubble chart visualization showing relationships between concepts"
-      >
-        <title>Bubble Chart Visualization</title>
-        <desc>An interactive bubble chart showing relationships between various concepts with a central theme. Zoom and pan enabled.</desc>
-      </svg>
-    </div>
+    <TooltipProvider>
+      <div className="bubble-chart-container" style={{ width: '100%', height: '100%' }}>
+        <svg 
+          ref={svgRef}
+          className="bubble-chart"
+          width={dimensions.width}
+          height={dimensions.height}
+          role="img"
+          aria-label="Bubble chart visualization showing text within circles"
+          onMouseMove={(e) => setMousePosition({ x: e.pageX, y: e.pageY })}
+        >
+          <title>Bubble Chart Visualization</title>
+          <desc>An interactive bubble chart showing various concepts represented as circles with text. Hover over truncated text to see the full content.</desc>
+        </svg>
+        
+        {hoveredNode && truncatedNodes.has(hoveredNode.id) && (
+          <div 
+            className="absolute bg-black/90 text-white p-2 rounded-md text-sm max-w-[250px] shadow-lg"
+            style={{ 
+              left: `${mousePosition.x + 15}px`, 
+              top: `${mousePosition.y + 15}px`,
+              pointerEvents: 'none',
+              zIndex: 50
+            }}
+          >
+            {hoveredNode.name}
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 
